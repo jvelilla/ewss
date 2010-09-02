@@ -32,8 +32,5 @@ feature -- WebSocket Event
 		end
 
 
-	on_close ( conn: WEB_SOCKET_CONNECTION; a_message : STRING)
-			-- Called after the WebSocket connection is closed
-		do
-		end
+
 end

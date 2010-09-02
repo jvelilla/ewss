@@ -1,5 +1,5 @@
 note
-	description : "nino application root class"
+	description : "WebSocket application root class"
 	date        : "$Date$"
 	revision    : "$Revision$"
 

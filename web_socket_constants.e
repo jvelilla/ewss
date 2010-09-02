@@ -18,8 +18,9 @@ feature -- Constants
     WebSocket_Origin : STRING = "WebSocket-Origin: "
     WebSocket_Protocol : STRING ="WebSocket-Protocol: "
     WebSocket_Location : STRING ="WebSocket-Location: "
-
-	Server : STRING = "EiffelWebSocketServer"
+	Origin : STRING = "Origin"
+	Host   : STRING = "Host"
+	Server : STRING = "EWSS"
 	Sec_WebSocket_Key1 :STRING = "Sec-WebSocket-Key1"
 	Sec_WebSocket_Key2 :STRING = "Sec-WebSocket-Key2"
 	Key3			   :STRING = "key3"

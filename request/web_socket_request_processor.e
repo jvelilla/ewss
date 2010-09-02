@@ -10,6 +10,7 @@ class
 	THREAD
 	WEB_SOCKET_CONSTANTS
 	SHARED_WEB_SOCKET_EVENT
+	REFACTORING_HELPER
 create
 	make
 feature -- Initialization
@@ -21,6 +22,8 @@ feature -- Initialization
 			is_data_frame_ok := True
 			create request_header_map.make (10)
 			ws_conn := a_client_socket
+		ensure
+			 ws_conn_set: ws_conn ~ a_client_socket
 		end
 
 feature -- Process
@@ -43,12 +46,8 @@ feature -- Process
 					if is_data_frame_ok then
 						event.on_message (ws_conn,l_client_message)
 				    else
-				    	create lw_response.make_empty
-						lw_response.append_code(end_frame.as_natural_32)
-						lw_response.append_code (start_frame.as_natural_32)
-						print ("%NClose Handshake" + lw_response)
-						send_message (lw_response)
-						ws_conn.close_socket
+				     	fixme ("Improve handling error, and message error")
+						event.on_close (ws_conn, "Data frame is not Ok")
 					end
 				end
 			end
@@ -83,6 +82,7 @@ feature {NONE}-- WebSocket Request Processing
 		local
 			end_of_frame : BOOLEAN
 		do
+			fixme ("TODO:  handling errors")
 			ws_conn.read_stream_thread_aware (1)
 			if ws_conn.last_string.at (1).code = start_frame then
 				from
@@ -103,26 +103,12 @@ feature {NONE}-- WebSocket Request Processing
 			end
 		end
 
-	parse_http_request_line (line: STRING)
-		require
-			line /= Void
-		local
-			pos, next_pos: INTEGER
-		do
-			print ("%Nparse http request line:%N" + line)
-			-- parse (this should be done by a lexer)
-			pos := line.index_of (' ', 1)
-			method := line.substring (1, pos - 1)
-			next_pos := line.index_of (' ', pos+1)
-			uri := line.substring (pos+1, next_pos-1)
-		ensure
-			not_void_method: method /= Void
-		end
 
 	receive_message_and_send_replay
 		local
 			message: detachable STRING
 		do
+ 	  		 	fixme ("TODO: Rename and handle errors, client did not send a valid handshake")
  	  		 	parse_request_line
            	    message := receive_message_internal
            	    print ("%NMessage:" + message)
@@ -167,18 +153,6 @@ feature {NONE}-- WebSocket Request Processing
         	end
 		end
 
-	send_message (a_msg: STRING)
-		local
-			a_package : PACKET
-            a_data : MANAGED_POINTER
-            c_string : C_STRING
-		do
-			 create c_string.make (a_msg)
-             create a_data.make_from_pointer (c_string.item, a_msg.count + 1)
-             create a_package.make_from_managed_pointer (a_data)
-             ws_conn.send (a_package, 0)
-		end
-
 
 	parse_request_line_internal (line: STRING)
 		require
@@ -203,7 +177,6 @@ feature {NONE}-- WebSocket Request Processing
         		l_handshake : STRING
         		l_origin : STRING
         	do
-
         		create l_handshake.make_empty
         		l_handshake.append (Http_1_1)
         		l_handshake.append (crlf)
@@ -213,12 +186,13 @@ feature {NONE}-- WebSocket Request Processing
         		l_handshake.append (crlf)
 				l_handshake.append (resolve_location)
         		l_handshake.append (crlf)
-				l_origin := request_header_map.at ("Origin")
+				l_origin := request_header_map.at (Origin)
 				if l_origin /= Void then
 					l_origin.left_adjust
 					l_origin.right_adjust
 				end
         		l_handshake.append (sec_websocket_origin + l_origin)
+        		to_implement ("Implement subprotocol logic")
 --        		l_handshake.append (crlf)
 --        		l_handshake.append (sec_websocket_protocol+"default")
 				l_handshake.append (crlf)
@@ -236,7 +210,7 @@ feature {NONE}-- WebSocket Request Processing
 			    create Result.make_empty
         		Result.append (sec_websocket_location)
         		Result.append (ws_scheme)
-        		l_host := request_header_map.at ("Host")
+        		l_host := request_header_map.at (Host)
         		l_host.left_adjust
         		l_host.right_adjust
         		Result.append (l_host)
@@ -262,8 +236,8 @@ feature {NONE}-- WebSocket Request Processing
 			l_key3 := request_header_map.item (Key3)
 			create md5_str.make_empty
 
-			part1 := from_integer_to_be (key1)
-			part2 := from_integer_to_be (key2)
+			part1 := from_integer_to_big_endian (key1)
+			part2 := from_integer_to_big_endian (key2)
 
 			create in_bytes
 			in_bytes.set_1 (part1[1])
@@ -303,12 +277,12 @@ feature {NONE}-- WebSocket Request Processing
 			i : INTEGER
 			aux : INTEGER_64
 		do
+			fixme ("Improve: Method")
 			a_string.left_adjust
 			from
 				create l_num.make_empty
 				l_sp := 0
 				i := 1
-
 			until
 				i > a_string.count
 			loop
@@ -328,7 +302,7 @@ feature {NONE}-- WebSocket Request Processing
 			Result := aux.as_integer_32
 		end
 
-	from_integer_to_be ( a_key : INTEGER_32) : ARRAY [INTEGER]
+	from_integer_to_big_endian ( a_key : INTEGER_32) : ARRAY [INTEGER]
 		do
 			create Result.make (1,4)
 			Result [1] := (a_key |>> 24).to_natural_8

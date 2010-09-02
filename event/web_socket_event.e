@@ -7,8 +7,8 @@ note
 deferred class
 	WEB_SOCKET_EVENT
 	inherit
-		WEB_socket_constants
-
+		WEB_SOCKET_CONSTANTS
+		REFACTORING_HELPER
 feature -- Web Socket Interface
 
 	on_message 	( conn: WEB_SOCKET_CONNECTION; a_message : STRING)
@@ -34,7 +34,12 @@ feature -- Web Socket Interface
 		require
 			conn_attached: conn /= Void
 			conn_valid: conn.is_open_read and then conn.is_open_write
-		deferred
+		do
+			fixme ("Add log ")
+			conn.send_message (close_message)
+			conn.close_socket
+		ensure
+			ws_conn_closed : conn.is_closed
 		end
 
 	body : STRING
@@ -45,6 +50,13 @@ feature -- Web Socket Interface
 			Result.append_code (start_frame.as_natural_32)
 			Result.append (body)
 			Result.append_code(end_frame.as_natural_32)
+		end
+
+	close_message : STRING
+		do
+			create Result.make_empty
+			Result.append_code (end_frame.as_natural_32)
+			Result.append_code(start_frame.as_natural_32)
 		end
 
 	set_body (a_body : STRING)
