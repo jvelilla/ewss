@@ -38,7 +38,7 @@ feature -- Process
 				False
 			loop
 				if not is_handshake then
-					receive_message_and_send_replay
+					opening_handshake
 				else
 					l_client_message := read_data_framing
 					print ("%NClient send:" + l_client_message)
@@ -46,6 +46,9 @@ feature -- Process
 					if is_data_frame_ok then
 						event.on_message (ws_conn,l_client_message)
 				    else
+				    	-- To close the connection cleanly, a frame consisting of just a 0xFF
+   						-- byte followed by a 0x00 byte is sent from one peer to ask that the
+   						-- other peer close the connection. (This will change in the next specification)
 				     	fixme ("Improve handling error, and message error")
 						event.on_close (ws_conn, "Data frame is not Ok")
 					end
@@ -79,6 +82,10 @@ feature -- Access
 feature {NONE}-- WebSocket Request Processing
 
 	read_data_framing : STRING
+			-- Data is sent in the form of UTF-8 text.  Each frame of data starts
+ 			-- with a 0x00 byte and ends with a 0xFF byte, with the UTF-8 text in
+   			-- between. (this will change in the next specification)
+
 		local
 			end_of_frame : BOOLEAN
 		do
@@ -104,7 +111,32 @@ feature {NONE}-- WebSocket Request Processing
 		end
 
 
-	receive_message_and_send_replay
+	opening_handshake
+			-- The openning handshake is intended to be compatible with HTTP-based server
+			-- side software.
+			-- To this end, the WebSocket client's handshake appears to
+   			-- HTTP servers to be a regular GET request with an Upgrade offer:
+			--
+			-- GET / HTTP/1.1
+        	-- Upgrade: WebSocket
+        	-- Connection: Upgrade
+			--
+			-- Optionals fields are used to select options in the WebSocket Protocol
+			-- Sec-WebSocket-Protocol : subprotocol selector
+			-- Cookie :  which can used for sending cookies to the server (e.g. as an authentication
+			--
+			-- Security related fields
+			-- Host : field is used to protect against DNS rebinding attacks and to allow multiple domains to be served from one IP address.
+			-- Sec-WebSocket-Location : the server include the hostname in this field of its handshake, so that both the client and the server can
+   			--							verify that they agree on which host is in use.
+   			-- Origin : field is used to protect against unauthorized cross-origin use of a WebSocket server by scripts using the |WebSocket| API
+   			--			in a Web browser.  The server specifies which origin it is willing to
+			--		    receive requests from by including a |Sec-WebSocket-Origin| field
+			--		    with that origin.  If multiple origins are authorized, the server
+			--		    echoes the value in the |Origin| field of the client's handshake.
+			-- Finally the server has to prove to the client that it received the client's webSocket handshake, so that the server does not
+			-- accept connections that are not WebSocket connections.
+
 		local
 			message: detachable STRING
 		do
@@ -173,6 +205,28 @@ feature {NONE}-- WebSocket Request Processing
 
 
     send_handshake (a_http_socket: WEB_SOCKET_CONNECTION)
+    		-- This method has to take three pieces of information and combine them to form a response.  The
+   			-- first two pieces of information come from the |Sec-WebSocket-Key1|
+   			-- and |Sec-WebSocket-Key2| fields in the client handshake
+   			-- For each of these fields, the server has to take the digits from the value to obtain a number ,
+   			-- then divide that number by the number of spaces characters in the value to obtain a 32-bit number.
+   			-- These two resulting numbers are then used in the server handshake, as described below.
+			--
+		   	-- The counting of spaces is intended to make it impossible to smuggle this field into the resource name;
+		   	-- making this even harder is the presence of _two_ such fields, and the use of a newline as the only
+		   	-- reliable indicator that the end of the key has been reached.  The use of random characters interspersed with the spaces and the numbers
+		   	-- ensures that the implementor actually looks for spaces and newlines, instead of being treating any character like a space, which would
+		   	-- make it again easy to smuggle the fields into the path and trick the server.  Finally, _dividing_ by this number of spaces is intended to
+		  	-- make sure that even the most naive of implementations will check for spaces, since if ther server does not verify that there are some
+		   	-- spaces, the server will try to divide by zero, which is usually fatal (a correct handshake will always have at least one space).
+		   	--
+		   	-- The third piece of information is given after the fields, in the last eight bytes of the handshake, expressed here as they would be seen if
+   			-- interpreted as ASCII:
+   			--
+   			-- The concatenation of the number obtained from processing the |Sec-WebSocket-Key1| field, expressed as a big-endian 32 bit number, the
+   			-- number obtained from processing the |Sec-WebSocket-Key2| field, again expressed as a big-endian 32 bit number, and finally the eight bytes
+   			-- at the end of the handshake, form a 128 bit string whose MD5 sum is then used by the server to prove that it read the handshake.
+
         	local
         		l_handshake : STRING
         		l_origin : STRING
@@ -180,10 +234,14 @@ feature {NONE}-- WebSocket Request Processing
         		create l_handshake.make_empty
         		l_handshake.append (Http_1_1)
         		l_handshake.append (crlf)
+        		-- The following two fields are just for compatibility with HTTP
         		l_handshake.append (Upgrade)
         		l_handshake.append (crlf)
         		l_handshake.append (Connection)
         		l_handshake.append (crlf)
+        		-- The following two fields are part of the security model
+        		-- echoing the origin and stating the exact host, port and resource name and if
+        		-- the connection is expected to be encrypted.
 				l_handshake.append (resolve_location)
         		l_handshake.append (crlf)
 				l_origin := request_header_map.at (Origin)
@@ -193,6 +251,7 @@ feature {NONE}-- WebSocket Request Processing
 				end
         		l_handshake.append (sec_websocket_origin + l_origin)
         		to_implement ("Implement subprotocol logic")
+        		-- 
 --        		l_handshake.append (crlf)
 --        		l_handshake.append (sec_websocket_protocol+"default")
 				l_handshake.append (crlf)

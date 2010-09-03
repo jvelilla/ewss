@@ -31,6 +31,7 @@ feature -- Web Socket Interface
 
 	on_close ( conn: WEB_SOCKET_CONNECTION; a_message : STRING)
 			-- Called after the WebSocket connection is closed
+			
 		require
 			conn_attached: conn /= Void
 			conn_valid: conn.is_open_read and then conn.is_open_write
