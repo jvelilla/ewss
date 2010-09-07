@@ -9,21 +9,22 @@
 		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf"/>
 		<library name="gobo_kernel" location="$ISE_LIBRARY\library\gobo\gobo_kernel.ecf"/>
 		<library name="net" location="$ISE_LIBRARY\library\net\net.ecf"/>
+		<library name="testing" location="$ISE_LIBRARY\library\testing\testing.ecf"/>
 		<library name="thread" location="$ISE_LIBRARY\library\thread\thread.ecf"/>
 		<cluster name="ewss" location=".\" recursive="true">
 			<file_rule>
+				<exclude>/bin$</exclude>
 				<exclude>/EIFGENs$</exclude>
 				<exclude>/CVS$</exclude>
 				<exclude>/.svn$</exclude>
-				<exclude>/.bin$</exclude>
-				<exclude>/.test$</exclude>
+				<exclude>/test$</exclude>
 			</file_rule>
 			<file_rule>
-				<exclude>^/crypto$</exclude>
 				<exclude>^/event$</exclude>
-				<exclude>^/config$</exclude>
 				<exclude>^/request$</exclude>
+				<exclude>^/config$</exclude>
 				<exclude>^/server$</exclude>
+				<exclude>^/crypto$</exclude>
 			</file_rule>
 			<cluster name="crypto" location=".\crypto\" recursive="true"/>
 			<cluster name="event" location=".\event\" recursive="true"/>

@@ -10,7 +10,7 @@ class
 		NETWORK_STREAM_SOCKET
 
 create
-	make_server_by_port
+	make_server_by_port, make_client_by_port
 
 feature
 	send_message (a_msg: STRING)
