@@ -6,24 +6,26 @@ note
 
 class
 	WEB_SOCKET_SERVER
+
 create
-    make
+	make
 
 feature {NONE} -- Initialization
 
-    make
-        do
-        end
+	make
+		do
+		end
 
 feature -- Initialization
+
 	setup
 		local
-			l_web_socket : WEB_SOCKET_SERVER_HANDLER
+			l_web_socket: WEB_SOCKET_SERVER_HANDLER
 		do
-			print("%N%N%N")
+			print ("%N%N%N")
 			print ("Starting WebSocket Server:%N")
 			stop := False
-			create l_web_socket.make (current,"HTTP_HANDLER")
+			create l_web_socket.make (current, "HTTP_HANDLER")
 			l_web_socket.launch
 			run
 		end
@@ -33,10 +35,10 @@ feature -- Initialization
 			stop := True
 		end
 
-feature	-- Access
-	stop: BOOLEAN
-		-- Stops the server
+feature -- Access
 
+	stop: BOOLEAN
+			-- Stops the server
 
 feature {NONE} -- implementation
 
@@ -46,10 +48,12 @@ feature {NONE} -- implementation
 			l_thread: EXECUTION_ENVIRONMENT
 		do
 			create l_thread
-			from until stop	loop
+			from
+			until
+				stop
+			loop
 				l_thread.sleep (1000000)
 			end
-
 		end
 
 end

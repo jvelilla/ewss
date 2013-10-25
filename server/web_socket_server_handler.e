@@ -6,9 +6,15 @@ note
 
 class
 	WEB_SOCKET_SERVER_HANDLER
+
 inherit
+
 	WEB_SOCKET_CONSTANTS
+
 	THREAD
+		rename
+			make as make_thread
+		end
 
 create
 	make
@@ -23,11 +29,12 @@ feature {NONE} -- Initialization
 			a_main_server_attached: a_main_server /= Void
 			a_name_attached: a_name /= Void
 		do
+			make_thread
 			main_server := a_main_server
-	        is_stop_requested := False
-	     ensure
-           main_server_set: a_main_server ~ main_server
-   	end
+			is_stop_requested := False
+		ensure
+			main_server_set: a_main_server ~ main_server
+		end
 
 feature -- Inherited Features
 
@@ -40,53 +47,52 @@ feature -- Inherited Features
 			create l_http_socket.make_server_by_port ({HTTP_CONSTANTS}.Http_server_port)
 			l_http_socket.set_reuse_address
 			if not l_http_socket.is_bound then
-				print ("%NSocket could not be bound on port " + {HTTP_CONSTANTS}.Http_server_port.out )
+				print ("%NSocket could not be bound on port " + {HTTP_CONSTANTS}.Http_server_port.out)
 			else
-				execute_internal ( l_http_socket )
-       		end
-       		print ("WebSocket Connection Server ends.")
-       	rescue
-       		print ("WebSocket Server shutdown due to exception. Please restart manually.")
-
+				execute_internal (l_http_socket)
+			end
+			print ("WebSocket Connection Server ends.")
+		rescue
+			print ("WebSocket Server shutdown due to exception. Please restart manually.")
 			if attached l_http_socket as ll_http_socket then
 				ll_http_socket.cleanup
 				check
-	        		socket_is_closed: ll_http_socket.is_closed
-	       		end
+					socket_is_closed: ll_http_socket.is_closed
+				end
 			end
 			is_stop_requested := True
-	    	retry
-       	end
+			retry
+		end
 
 feature {NONE} -- implementation
 
-	execute_internal ( l_http_socket : WEB_SOCKET_CONNECTION)
+	execute_internal (l_http_socket: WEB_SOCKET_CONNECTION)
 		local
-			l_request : WEB_SOCKET_REQUEST_PROCESSOR
+			l_request: WEB_SOCKET_REQUEST_PROCESSOR
 		do
 			from
-	             l_http_socket.listen ({HTTP_CONSTANTS}.Max_tcp_clients)
-	             print ("%NWebSocket Connection Server ready on port " + {HTTP_CONSTANTS}.Http_server_port.out +"%N")
-	        until
-	            is_stop_requested
-	        loop
-	            l_http_socket.accept
-	            if not is_stop_requested then
-			       if attached l_http_socket.accepted as l_thread_http_socket then
+				l_http_socket.listen ({HTTP_CONSTANTS}.Max_tcp_clients)
+				print ("%NWebSocket Connection Server ready on port " + {HTTP_CONSTANTS}.Http_server_port.out + "%N")
+			until
+				is_stop_requested
+			loop
+				l_http_socket.accept
+				if not is_stop_requested then
+					if attached l_http_socket.accepted as l_thread_http_socket then
 						create l_request.make (l_thread_http_socket)
-							l_request.launch
+						l_request.launch
 					end
 				end
-	         end
+			end
 		end
 
 feature -- Access
-	main_server : WEB_SOCKET_SERVER
 
-	is_stop_requested : BOOLEAN
+	main_server: WEB_SOCKET_SERVER
+
+	is_stop_requested: BOOLEAN
 
 invariant
 	main_server_attached: main_server /= Void
+
 end
-
-

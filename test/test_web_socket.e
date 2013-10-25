@@ -60,40 +60,33 @@ feature -- Test routines
 	test_web_socket_good_header
 		local
 			msg : STRING
-			address: detachable INET_ADDRESS
 		do
-			address := create_from_name ("localhost")
-			create ws_conn.make_client_by_address_and_port (address, 9090)
-			ws_conn.set_connect_timeout (1000)
+			create ws_conn.make_client_by_port (9090, "localhost")
 					-- Connect to the Server
 			ws_conn.connect
 			assert ("Connected", ws_conn.is_connected)
-			client_handshake.append_code (0x0D)
-			client_handshake.append_code (0x0A)
-			client_handshake.append (key3)
 			send_message (client_handshake)
-			assert("Data Received", receive_data /= Void)
+			ws_conn.read_stream (1024*16)
+			assert("Data Received", ws_conn.last_string /= Void)
+			ws_conn.close
 		end
 
 feature {NONE} -- implementation
+
 	ws_conn: NETWORK_STREAM_SOCKET
 	crlf: STRING is "%/13/%/10/"
 
 	client_handshake : STRING = "[
-GET /demo HTTP/1.1
-Host: example.com
+GET /chat HTTP/1.1
+Host: server.example.com
+Upgrade: websocket
 Connection: Upgrade
-Sec-WebSocket-Key2: 12998 5 Y3 1  .P00
-Sec-WebSocket-Protocol: sample
-Upgrade: WebSocket
-Sec-WebSocket-Key1: 4 @1  46546xW%0l 1 5
+Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
 Origin: http://example.com
+Sec-WebSocket-Protocol: chat, superchat
+Sec-WebSocket-Version: 13
 
 ]"
-
-	key3 : STRING = "^n:ds[4U"
-
-
 
 	send_message (a_msg: STRING)
 		local
@@ -113,7 +106,7 @@ Origin: http://example.com
         do
 
             from
-                ws_conn.read_line
+                ws_conn.read_stream (1024*16)
                 Result := ""
             until
                 end_of_stream
@@ -121,7 +114,7 @@ Origin: http://example.com
                 print ("%N" +ws_conn.last_string+ "%N")
                 Result.append(ws_conn.last_string)
                 if ws_conn.last_string /= void and ws_conn.socket_ok  then
-                	ws_conn.read_line
+                	ws_conn.read_stream (1024*16)
         		else
         			end_of_stream := True
         		end

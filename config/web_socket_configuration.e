@@ -11,14 +11,16 @@ create
 	make
 
 feature -- Initialization
+
 	make
 		do
 		end
 
 feature -- Event Handler
-	event : ECHO_WEB_SOCKET_EVENT
-        do
-        	create Result.make
-        end
+
+	event: ECHO_WEB_SOCKET_EVENT
+		do
+			create Result.make
+		end
 
 end

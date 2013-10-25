@@ -1,36 +1,26 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-6-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-6-0 http://www.eiffel.com/developers/xml/configuration-1-6-0.xsd" name="ewss" uuid="522DFFDF-774D-4A2B-A731-560CE9552444">
+<system xmlns="http://www.eiffel.com/developers/xml/configuration-1-11-0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.eiffel.com/developers/xml/configuration-1-11-0 http://www.eiffel.com/developers/xml/configuration-1-11-0.xsd" name="ewss" uuid="522DFFDF-774D-4A2B-A731-560CE9552444">
 	<target name="ewss">
 		<root class="APPLICATION" feature="make"/>
-		<option warning="true" syntax="provisional">
+		<option warning="true" full_class_checking="false" is_attached_by_default="false" void_safety="none" syntax="provisional">
 			<assertions precondition="true" postcondition="true" check="true" invariant="true" loop="true" supplier_precondition="true"/>
 		</option>
-		<setting name="multithreaded" value="true"/>
-		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf"/>
-		<library name="gobo_kernel" location="$ISE_LIBRARY\library\gobo\gobo_kernel.ecf"/>
-		<library name="net" location="$ISE_LIBRARY\library\net\net.ecf"/>
-		<library name="testing" location="$ISE_LIBRARY\library\testing\testing.ecf"/>
-		<library name="thread" location="$ISE_LIBRARY\library\thread\thread.ecf"/>
+		<setting name="concurrency" value="thread"/>
+		<library name="base" location="$ISE_LIBRARY\library\base\base-safe.ecf"/>
+		<library name="net" location="$ISE_LIBRARY\library\net\net-safe.ecf"/>
+		<library name="testing" location="$ISE_LIBRARY\library\testing\testing-safe.ecf"/>
+		<library name="thread" location="$ISE_LIBRARY\library\thread\thread-safe.ecf"/>
+		<library name="crypto" location="$ISE_LIBRARY\unstable\library\text\encryption\crypto\crypto-safe.ecf"/>
+		<library name="encoder" location="$ISE_LIBRARY\contrib\library\web\framework\ewf\text\encoder\encoder-safe.ecf"/>
 		<cluster name="ewss" location=".\" recursive="true">
 			<file_rule>
-				<exclude>/bin$</exclude>
-				<exclude>/EIFGENs$</exclude>
-				<exclude>/CVS$</exclude>
 				<exclude>/.svn$</exclude>
+				<exclude>/.git$</exclude>
+				<exclude>/bin$</exclude>
+				<exclude>/CVS$</exclude>
 				<exclude>/test$</exclude>
+				<exclude>/EIFGENs$</exclude>
 			</file_rule>
-			<file_rule>
-				<exclude>^/event$</exclude>
-				<exclude>^/request$</exclude>
-				<exclude>^/config$</exclude>
-				<exclude>^/server$</exclude>
-				<exclude>^/crypto$</exclude>
-			</file_rule>
-			<cluster name="crypto" location=".\crypto\" recursive="true"/>
-			<cluster name="event" location=".\event\" recursive="true"/>
-			<cluster name="config" location=".\config\" recursive="true"/>
-			<cluster name="request" location=".\request\" recursive="true"/>
-			<cluster name="server" location=".\server\" recursive="true"/>
 		</cluster>
 	</target>
 </system>

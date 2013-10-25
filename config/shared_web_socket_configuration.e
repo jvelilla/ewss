@@ -9,8 +9,9 @@ class
 
 feature
 
-	ws_config : WEB_SOCKET_CONFIGURATION
+	ws_config: WEB_SOCKET_CONFIGURATION
 		once
 			create Result.make
 		end
+
 end

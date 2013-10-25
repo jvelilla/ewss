@@ -6,12 +6,14 @@ note
 
 class
 	SHARED_WEB_SOCKET_EVENT
-	inherit
-		SHARED_WEB_SOCKET_CONFIGURATION
+
+inherit
+
+	SHARED_WEB_SOCKET_CONFIGURATION
 
 feature
 
-	event : WEB_SOCKET_EVENT
+	event: WEB_SOCKET_EVENT
 		once
 			Result := ws_config.event
 		end
