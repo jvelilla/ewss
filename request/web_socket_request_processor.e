@@ -131,40 +131,36 @@ feature {NONE} -- WebSocket Request Processing
 			-- between. (this will change in the next specification)
 
 		local
-			end_of_frame: BOOLEAN
 			l_opcode: INTEGER
 			l_whole: BOOLEAN
 			l_len: INTEGER
 			l_encoded: BOOLEAN
 			l_utf: UTF_CONVERTER
-			l_key : STRING
+			l_key: STRING
 			i: INTEGER
 			l_frame: STRING
 		do
 			ws_conn.read_stream_thread_aware (1)
 			l_opcode := ws_conn.last_string.at (1).code
 			l_whole := (l_opcode & 0b10000000) /= 0
-
 			print (to_byte (l_opcode).out)
-
 			l_opcode := l_opcode & 0xF
-
 			if l_opcode = 1 then
 				ws_conn.read_stream_thread_aware (1)
-				l_len :=  ws_conn.last_string.at(1).code
+				l_len := ws_conn.last_string.at (1).code
 				print (to_byte (l_len).out)
 				l_encoded := l_len >= 128
 				if l_encoded then
 					l_len := l_len - 128
 				end
 				if l_len = 127 then
-					ws_conn.read_stream_thread_aware(1)
+					ws_conn.read_stream_thread_aware (1)
 					l_len := l_len.bit_or (ws_conn.last_string.at (1).code |<< 16)
 					l_len := l_len.bit_or (ws_conn.last_string.at (1).code |<< 8)
-					l_len := l_len.bit_or (ws_conn.last_string.at (1).code )
+					l_len := l_len.bit_or (ws_conn.last_string.at (1).code)
 				elseif l_len = 126 then
 					l_len := l_len.bit_or (ws_conn.last_string.at (1).code |<< 8)
-					l_len := l_len.bit_or (ws_conn.last_string.at (1).code )
+					l_len := l_len.bit_or (ws_conn.last_string.at (1).code)
 				end
 				if l_encoded then
 					ws_conn.read_stream_thread_aware (4)
@@ -176,7 +172,7 @@ feature {NONE} -- WebSocket Request Processing
 					until
 						i > l_frame.count
 					loop
-						l_frame[i] := (l_frame[i].code.to_integer_8.bit_xor (l_key[((i-1)\\4)+1].code.to_integer_8)).to_character_8
+						l_frame [i] := (l_frame [i].code.to_integer_8.bit_xor (l_key [((i - 1) \\ 4) + 1].code.to_integer_8)).to_character_8
 						i := i + 1
 					end
 					Result := l_utf.string_32_to_utf_8_string_8 (l_frame)
@@ -204,8 +200,7 @@ feature {NONE} -- WebSocket Request Processing
 		note
 			EIS: "name=Server Side Requirements", "src=http://tools.ietf.org/html/rfc6455#section-4.2", "protocol=uri"
 			EIS: "name=Reading the Client's Opening Handshake", "src=http://tools.ietf.org/html/rfc6455#section-4.2.1", "protocol=uri"
-			EIS: "name=Sending the Server's Opening Handshake","src=http://tools.ietf.org/html/rfc6455#section-4.2.2", "protocol=uri"
-
+			EIS: "name=Sending the Server's Opening Handshake", "src=http://tools.ietf.org/html/rfc6455#section-4.2.2", "protocol=uri"
 		local
 			l_sha1: SHA1
 			l_key, l_handshake: STRING
@@ -213,11 +208,18 @@ feature {NONE} -- WebSocket Request Processing
 			parse (ws_conn)
 				-- Reading client's opening GT
 
-   				-- At the moment only ckecking GET request and Sec-WebSocket-Key
-			if method.same_string ("GET") then -- itemm MUST be GET
-				if attached header_map.item (Sec_WebSocket_Key) as l_ws_key then -- Sec-websocket-key must be present
-					log ("key " + l_ws_key)
+				-- TODO extract to a validator handshake or something like that.
+			log ("Receive <====================")
+			log (header)
+			if method.same_string ("GET") then --item MUST be GET
+				if attached header_map.item (Sec_WebSocket_Key) as l_ws_key and then -- Sec-websocket-key must be present
+					attached header_map.item ("Upgrade") as l_upgrade_key and then -- Upgrade header must be present with value websocket
+					l_upgrade_key.is_case_insensitive_equal ("websocket") and then attached header_map.item ("Connection") as l_connection_key and then -- Connection header must be present with value Upgrade
+					l_connection_key.is_case_insensitive_equal ("Upgrade") and then attached header_map.item ("Sec-WebSocket-Version") as l_version_key and then -- Version header must be present with value 13
+					l_version_key.is_case_insensitive_equal ("13") and then attached header_map.item ("Host") -- Host header must be present
+				then
 
+					log ("key " + l_ws_key)
 						-- Sending the server's opening handshake
 					l_ws_key.append_string (Magic_guid)
 					create l_sha1.make
@@ -232,16 +234,17 @@ feature {NONE} -- WebSocket Request Processing
 						-- end of header empty line
 					l_handshake.append_string ("%R%N")
 					io.put_new_line
+					log ("================> Send")
 					log (l_handshake)
 					ws_conn.put_string (l_handshake)
-					is_handshake := True  -- the connection is in OPEN State.
+					is_handshake := True -- the connection is in OPEN State.
 				end
 			end
 			if not is_handshake then
 					-- If we cannot complete the handshake, then the server MUST stop processing the client's handshake and return an HTTP response with an
-				   	-- appropriate error code (such as 400 Bad Request).
+					-- appropriate error code (such as 400 Bad Request).
 				has_error := True
-				ws_conn.put_string ("HTTP/1.0 400 Bad Request")
+				ws_conn.put_string ("HTTP/1.1 400 Bad Request")
 					-- For now a simple Bad Request!!!.
 			end
 		end
@@ -362,8 +365,7 @@ feature {NONE} -- Implementation
 			end
 		end
 
-
-	to_byte (a_integer: INTEGER): ARRAY[INTEGER]
+	to_byte (a_integer: INTEGER): ARRAY [INTEGER]
 		require
 			valid: a_integer >= 0 and then a_integer <= 255
 		local

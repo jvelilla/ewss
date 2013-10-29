@@ -11,7 +11,7 @@ feature
 
 	ws_config: WEB_SOCKET_CONFIGURATION
 		once
-			create Result.make
+			create Result
 		end
 
 end

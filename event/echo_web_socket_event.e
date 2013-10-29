@@ -11,14 +11,6 @@ inherit
 
 	WEB_SOCKET_EVENT
 
-create
-	make
-
-feature -- Initialization
-
-	make
-		do
-		end
 
 feature -- WebSocket Event
 
