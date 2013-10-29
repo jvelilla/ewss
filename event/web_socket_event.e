@@ -40,7 +40,7 @@ feature -- Web Socket Interface
 		do
 			fixme ("Add log ")
 			conn.send_message (close_message)
-			conn.close_socket
+			conn.close
 		ensure
 			ws_conn_closed: conn.is_closed
 		end
@@ -50,16 +50,15 @@ feature -- Web Socket Interface
 	message: STRING
 		do
 			create Result.make_empty
-			Result.append_code (start_frame.as_natural_32)
+			Result.append_code (129)
+			Result.append_code (body.count.as_natural_32)
 			Result.append (body)
-			Result.append_code (end_frame.as_natural_32)
 		end
 
 	close_message: STRING
 		do
 			create Result.make_empty
-			Result.append_code (end_frame.as_natural_32)
-			Result.append_code (start_frame.as_natural_32)
+			Result.append_code (0x8)
 		end
 
 	set_body (a_body: STRING)

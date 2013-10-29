@@ -31,6 +31,7 @@ feature {NONE} -- Initialization
 		do
 			make_thread
 			ws_conn := a_client_socket
+			is_closed := False
 			reset
 		ensure
 			ws_conn_set: ws_conn = a_client_socket
@@ -45,6 +46,7 @@ feature {NONE} -- Initialization
 			create uri.make_empty
 			create version.make_empty
 			has_error := False
+			is_data_frame_ok := True
 		end
 
 feature -- Process
@@ -57,22 +59,18 @@ feature -- Process
 			from
 				is_handshake := False
 			until
-				False or else has_error
+				False or else has_error or is_closed
 			loop
 				if not is_handshake then
 					opening_handshake
 				else
 					if ws_conn.ready_for_reading then
 						l_client_message := read_data_framing
-						print ("%NClient send:" + l_client_message.out)
 						if is_data_frame_ok then
 							event.on_message (ws_conn, l_client_message)
 						else
-								-- To close the connection cleanly, a frame consisting of just a 0xFF
-								-- byte followed by a 0x00 byte is sent from one peer to ask that the
-								-- other peer close the connection. (This will change in the next specification)
-							fixme ("Improve handling error, and message error")
 							event.on_close (ws_conn, "Data frame is not Ok")
+							is_closed := True
 						end
 					end
 				end
@@ -105,6 +103,7 @@ feature -- Access
 
 	is_data_frame_ok: BOOLEAN
 
+	is_closed: BOOLEAN
 
 feature -- Status report
 
@@ -144,13 +143,16 @@ feature {NONE} -- WebSocket Request Processing
 		do
 			ws_conn.read_stream_thread_aware (1)
 			l_opcode := ws_conn.last_string.at (1).code
-			l_whole := (l_opcode & 128) /= 0
+			l_whole := (l_opcode & 0b10000000) /= 0
+
+			print (to_byte (l_opcode).out)
 
 			l_opcode := l_opcode & 0xF
 
 			if l_opcode = 1 then
 				ws_conn.read_stream_thread_aware (1)
 				l_len :=  ws_conn.last_string.at(1).code
+				print (to_byte (l_len).out)
 				l_encoded := l_len >= 128
 				if l_encoded then
 					l_len := l_len - 128
@@ -174,7 +176,7 @@ feature {NONE} -- WebSocket Request Processing
 					until
 						i > l_frame.count
 					loop
-						l_frame[i] := (l_frame[i].code.bit_xor (l_key[(i\\4)+1].code)).to_character_8
+						l_frame[i] := (l_frame[i].code.to_integer_8.bit_xor (l_key[((i-1)\\4)+1].code.to_integer_8)).to_character_8
 						i := i + 1
 					end
 					Result := l_utf.string_32_to_utf_8_string_8 (l_frame)
@@ -209,10 +211,10 @@ feature {NONE} -- WebSocket Request Processing
 			l_key, l_handshake: STRING
 		do
 			parse (ws_conn)
-				-- Reading client's opening handshake
+				-- Reading client's opening GT
 
    				-- At the moment only ckecking GET request and Sec-WebSocket-Key
-			if method.same_string ("GET") then -- Request MUST be GET
+			if method.same_string ("GET") then -- itemm MUST be GET
 				if attached header_map.item (Sec_WebSocket_Key) as l_ws_key then -- Sec-websocket-key must be present
 					log ("key " + l_ws_key)
 
@@ -358,6 +360,28 @@ feature {NONE} -- Implementation
 				Result.append_character (l_digest [index].to_character_8)
 				index := index + 1
 			end
+		end
+
+
+	to_byte (a_integer: INTEGER): ARRAY[INTEGER]
+		require
+			valid: a_integer >= 0 and then a_integer <= 255
+		local
+			l_val: INTEGER
+			l_index: INTEGER
+		do
+			create Result.make_filled (0, 1, 8)
+			from
+				l_val := a_integer
+				l_index := 8
+			until
+				l_val < 2
+			loop
+				Result.put (l_val \\ 2, l_index)
+				l_val := l_val // 2
+				l_index := l_index - 1
+			end
+			Result.put (l_val, l_index)
 		end
 
 invariant
