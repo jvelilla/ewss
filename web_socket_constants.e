@@ -1,6 +1,5 @@
 note
-	description: "Summary description for {WEB_SOCKET_CONSTANTS}."
-	author: ""
+	description: "Constants for WebSockets"
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -41,12 +40,6 @@ feature -- Constants
 
 	Sec_WebSocket_Key: STRING = "Sec-WebSocket-Key"
 
-	Key3: STRING = "key3"
-
-	Start_frame: INTEGER_32 = 0x00
-
-	End_frame: INTEGER_32 = 0xFF
-
 	Ws_scheme: STRING = "ws://"
 
 	Wss_scheme: STRING = "wss://"
@@ -71,5 +64,70 @@ feature -- Constants
 		--        Connection: Upgrade
 		--        Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
 		--        Sec-WebSocket-Protocol: chat
+
+feature -- Opcodes Standard actions
+
+		--| Maybe we need an enum STANDARD_ACTIONS_OPCODES?
+		--     |Opcode  | Meaning                             | Reference |
+		--    -+--------+-------------------------------------+-----------|
+		--     | 0      | Continuation Frame                  | RFC 6455  |
+		--    -+--------+-------------------------------------+-----------|
+		--     | 1      | Text Frame                          | RFC 6455  |
+		--    -+--------+-------------------------------------+-----------|
+		--     | 2      | Binary Frame                        | RFC 6455  |
+		--    -+--------+-------------------------------------+-----------|
+		--     | 8      | Connection Close Frame              | RFC 6455  |
+		--    -+--------+-------------------------------------+-----------|
+		--     | 9      | Ping Frame                          | RFC 6455  |
+		--    -+--------+-------------------------------------+-----------|
+		--     | 10     | Pong Frame                          | RFC 6455  |
+		--    -+--------+-------------------------------------+-----------|
+
+	Continuation_frame: INTEGER = 0
+
+	Text_frame: INTEGER = 1
+
+	Binary_frame: INTEGER = 2
+
+	Connection_close_frame: INTEGER = 8
+
+	Ping_frame: INTEGER = 9
+
+	Pong_frame: INTEGER = 10
+
+feature -- Close code numbers
+
+		-- Maybe an ENUM CLOSE_CODES
+
+		--	   |Status Code | Meaning         | Contact       | Reference |
+		--    -+------------+-----------------+---------------+-----------|
+		--     | 1000       | Normal Closure  | hybi@ietf.org | RFC 6455  |
+		--    -+------------+-----------------+---------------+-----------|
+		--     | 1001       | Going Away      | hybi@ietf.org | RFC 6455  |
+		--    -+------------+-----------------+---------------+-----------|
+		--     | 1002       | Protocol error  | hybi@ietf.org | RFC 6455  |
+		--    -+------------+-----------------+---------------+-----------|
+		--     | 1003       | Unsupported Data| hybi@ietf.org | RFC 6455  |
+		--    -+------------+-----------------+---------------+-----------|
+		--     | 1004       | ---Reserved---- | hybi@ietf.org | RFC 6455  |
+		--    -+------------+-----------------+---------------+-----------|
+		--     | 1005       | No Status Rcvd  | hybi@ietf.org | RFC 6455  |
+		--    -+------------+-----------------+---------------+-----------|
+		--     | 1006       | Abnormal Closure| hybi@ietf.org | RFC 6455  |
+		--    -+------------+-----------------+---------------+-----------|
+		--     | 1007       | Invalid frame   | hybi@ietf.org | RFC 6455  |
+		--     |            | payload data    |               |           |
+		--    -+------------+-----------------+---------------+-----------|
+		--     | 1008       | Policy Violation| hybi@ietf.org | RFC 6455  |
+		--    -+------------+-----------------+---------------+-----------|
+		--     | 1009       | Message Too Big | hybi@ietf.org | RFC 6455  |
+		--    -+------------+-----------------+---------------+-----------|
+		--     | 1010       | Mandatory Ext.  | hybi@ietf.org | RFC 6455  |
+		--    -+------------+-----------------+---------------+-----------|
+		--     | 1011       | Internal Server | hybi@ietf.org | RFC 6455  |
+		--     |            | Error           |               |           |
+		--    -+------------+-----------------+---------------+-----------|
+		--     | 1015       | TLS handshake   | hybi@ietf.org | RFC 6455  |
+		--    -+------------+-----------------+---------------+-----------|
 
 end

@@ -1,6 +1,5 @@
 note
 	description: "Summary description for {WEB_SOCKET_REQUEST_PROCESSOR}."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -75,12 +74,19 @@ feature -- Process
 					end
 				end
 			end
+			if has_error then
+				if not ws_conn.is_closed then
+					event.on_close (ws_conn,"Data frame is not OK")
+				end
+			end
 		end
 
 feature -- Access
 
 	header: STRING
 			-- Header' source
+			-- Stores the current request message received from http server
+
 
 	ws_conn: WEB_SOCKET_CONNECTION
 
@@ -88,9 +94,6 @@ feature -- Access
 
 	header_map: HASH_TABLE [STRING, STRING]
 			-- Containts key value of the header
-
-	current_request_message: STRING
-			-- Stores the current request message received from http server
 
 	method: STRING
 			-- http verb
@@ -140,15 +143,21 @@ feature {NONE} -- WebSocket Request Processing
 			i: INTEGER
 			l_frame: STRING
 		do
+			create Result.make_empty
 			ws_conn.read_stream_thread_aware (1)
 			l_opcode := ws_conn.last_string.at (1).code
 			l_whole := (l_opcode & 0b10000000) /= 0
-			print (to_byte (l_opcode).out)
+			debug
+				print (to_byte (l_opcode).out)
+			end
 			l_opcode := l_opcode & 0xF
+			log ("Standard Action:" + l_opcode.out)
 			if l_opcode = 1 then
 				ws_conn.read_stream_thread_aware (1)
 				l_len := ws_conn.last_string.at (1).code
-				print (to_byte (l_len).out)
+				debug
+					print (to_byte (l_len).out)
+				end
 				l_encoded := l_len >= 128
 				if l_encoded then
 					l_len := l_len - 128
@@ -176,6 +185,8 @@ feature {NONE} -- WebSocket Request Processing
 						i := i + 1
 					end
 					Result := l_utf.string_32_to_utf_8_string_8 (l_frame)
+					log ("Received <===============")
+					log (Result)
 				end
 			else
 				is_data_frame_ok := False
@@ -215,7 +226,7 @@ feature {NONE} -- WebSocket Request Processing
 				if attached header_map.item (Sec_WebSocket_Key) as l_ws_key and then -- Sec-websocket-key must be present
 					attached header_map.item ("Upgrade") as l_upgrade_key and then -- Upgrade header must be present with value websocket
 					l_upgrade_key.is_case_insensitive_equal ("websocket") and then attached header_map.item ("Connection") as l_connection_key and then -- Connection header must be present with value Upgrade
-					l_connection_key.is_case_insensitive_equal ("Upgrade") and then attached header_map.item ("Sec-WebSocket-Version") as l_version_key and then -- Version header must be present with value 13
+					l_connection_key.has_substring ("Upgrade") and then attached header_map.item ("Sec-WebSocket-Version") as l_version_key and then -- Version header must be present with value 13
 					l_version_key.is_case_insensitive_equal ("13") and then attached header_map.item ("Host") -- Host header must be present
 				then
 
@@ -241,6 +252,7 @@ feature {NONE} -- WebSocket Request Processing
 				end
 			end
 			if not is_handshake then
+				log ("Error!!!")
 					-- If we cannot complete the handshake, then the server MUST stop processing the client's handshake and return an HTTP response with an
 					-- appropriate error code (such as 400 Bad Request).
 				has_error := True

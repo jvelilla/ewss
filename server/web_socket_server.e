@@ -1,6 +1,5 @@
 note
 	description: "Summary description for {WEB_SOCKET_SERVER}."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 

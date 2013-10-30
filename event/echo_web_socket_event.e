@@ -1,6 +1,5 @@
 note
 	description: "Summary description for {ECHO_WEB_SOCKET_EVENT}."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 
@@ -10,6 +9,18 @@ class
 inherit
 
 	WEB_SOCKET_EVENT
+
+create
+	make
+
+feature {NONE} -- Initialization
+
+	make
+		do
+			set_body (create {STRING}.make_empty)
+		ensure
+			body_set: body.is_empty
+		end
 
 
 feature -- WebSocket Event

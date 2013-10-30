@@ -1,6 +1,5 @@
 note
 	description: "Summary description for {SHARED_WEB_SOCKET_CONFIGURATION}."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 

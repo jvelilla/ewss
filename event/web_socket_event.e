@@ -1,6 +1,5 @@
 note
-	description: "Summary description for {WEB_SOCKET_EVENT}."
-	author: ""
+	description: "Web Socket events"
 	date: "$Date$"
 	revision: "$Revision$"
 

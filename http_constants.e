@@ -1,6 +1,5 @@
 note
-	description: "Summary description for {HTTP_CONSTANTS}."
-	author: ""
+	description: "HTTP Constants"
 	date: "$Date$"
 	revision: "$Revision$"
 

@@ -1,6 +1,5 @@
 note
 	description: "Summary description for {SHARED_WEB_SOCKET_EVENT}."
-	author: ""
 	date: "$Date$"
 	revision: "$Revision$"
 

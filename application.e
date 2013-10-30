@@ -15,6 +15,7 @@ create
 feature {NONE} -- Initialization
 
 	make
+			-- Start up the server
 		do
 			make_web_socket_server
 		end
