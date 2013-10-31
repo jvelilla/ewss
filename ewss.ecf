@@ -15,8 +15,8 @@
 		<cluster name="ewss" location=".\" recursive="true">
 			<file_rule>
 				<exclude>/.svn$</exclude>
-				<exclude>/bin$</exclude>
 				<exclude>/EIFGENs$</exclude>
+				<exclude>/bin$</exclude>
 				<exclude>/CVS$</exclude>
 				<exclude>/test$</exclude>
 				<exclude>/.git$</exclude>

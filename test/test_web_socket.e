@@ -83,6 +83,48 @@ feature -- Test Reading the Client's Opening Handshake
 			ws_conn.close
 		end
 
+
+	test_web_socket_multi_frame
+			-- Multiframe
+		note
+			EIS: "Reading the Client's Opening Handshake", "src=http://tools.ietf.org/html/rfc6455#section-4.2.1", "protocol=uri"
+		local
+			msg: STRING
+			l_int: INTEGER
+			l_frame1: STRING
+			l_frame2: STRING
+		do
+			create ws_conn.make_client_by_port (9090, "127.0.0.1")
+				-- Connect to the Server
+			ws_conn.connect
+			assert ("Connected", ws_conn.is_connected)
+			client_handshake_ok.append (crlf)
+			client_handshake_ok.append (crlf)
+			send_message (client_handshake_ok)
+			ws_conn.read_stream (1024 * 16)
+			assert ("Data Received", ws_conn.last_string /= Void)
+			assert ("Data Received", ws_conn.last_string.has_substring ("HTTP/1.1 101 Switching Protocols"))
+			l_frame1 := "Multi-frame message, first frame"
+			create msg.make_empty
+			msg.append_code (1)
+			msg.append_code ((l_frame1.count.as_natural_32 + 128))
+			msg.append ("1234")
+			msg.append (masked ("1234",l_frame1))
+			send_message (msg)
+			l_frame2 := "End frame"
+			create msg.make_empty
+			msg.append_code (129)
+			msg.append_code ((l_frame2.count.as_natural_32 + 128))
+			msg.append ("1243")
+			msg.append (masked ("1243",l_frame2))
+			send_message (msg)
+			ws_conn.read_stream (1024 * 16)
+			assert ("Data Received", ws_conn.last_string /= Void)
+			l_int := 8
+			send_message (l_int.out)
+			ws_conn.close
+		end
+
 	test_web_socket_wrong_method
 			-- Send a POST method instead a GET
 		note
@@ -256,7 +298,7 @@ feature -- Message
 			create c_string.make (a_msg)
 			create a_data.make_from_pointer (c_string.item, a_msg.count + 1)
 			create a_package.make_from_managed_pointer (a_data)
-			ws_conn.send (a_package, 0)
+			ws_conn.send (a_package, 1)
 		end
 
 	receive_data: STRING
@@ -371,7 +413,7 @@ feature {NONE} -- implementation
 			Origin: http://example.com
 			Sec-WebSocket-Protocol: chat, superchat
 			Sec-WebSocket-Version: 11
-		]"	
+		]"
 
 	client_handshake_missing_host: STRING = "[
 			GET /chat HTTP/1.1
@@ -383,5 +425,26 @@ feature {NONE} -- implementation
 			Sec-WebSocket-Version: 13
 		]"
 
+
+	masked (a_key: STRING; a_frame: STRING): STRING
+		local
+			l_key: STRING
+			l_frame: STRING
+			i: INTEGER
+			l_utf: UTF_CONVERTER
+		do
+			create Result.make_empty
+			l_key := a_key
+			l_frame := a_frame
+			from
+				i := 1
+			until
+				i > l_frame.count
+			loop
+				l_frame [i] := (l_frame [i].code.to_integer_8.bit_xor (l_key [((i - 1) \\ 4) + 1].code.to_integer_8)).to_character_8
+				i := i + 1
+			end
+			Result.append (l_utf.string_32_to_utf_8_string_8 (l_frame))
+		end
 
 end

@@ -76,7 +76,7 @@ feature -- Process
 			end
 			if has_error then
 				if not ws_conn.is_closed then
-					event.on_close (ws_conn,"Data frame is not OK")
+					event.on_close (ws_conn, "Data frame is not OK")
 				end
 			end
 		end
@@ -86,7 +86,6 @@ feature -- Access
 	header: STRING
 			-- Header' source
 			-- Stores the current request message received from http server
-
 
 	ws_conn: WEB_SOCKET_CONNECTION
 
@@ -107,6 +106,7 @@ feature -- Access
 	is_data_frame_ok: BOOLEAN
 
 	is_closed: BOOLEAN
+
 
 feature -- Status report
 
@@ -129,67 +129,107 @@ feature -- Element change
 feature {NONE} -- WebSocket Request Processing
 
 	read_data_framing: STRING
-			-- Data is sent in the form of UTF-8 text.  Each frame of data starts
-			-- with a 0x00 byte and ends with a 0xFF byte, with the UTF-8 text in
-			-- between. (this will change in the next specification)
-
+			-- TODO support Multi frames, Binary messages
+			-- Handle error responses in a better way.
+			-- IDEA:
+			-- class FRAME
+			-- 		is_fin: BOOLEAN
+			--		opcode: WEB_SOCKET_STATUS_CODE (TEXT, BINARY, CLOSE, CONTINUE,PING, PONG)
+			--		data/payload
+			--      status_code: #see Status Codes http://tools.ietf.org/html/rfc6455#section-7.3
+			--		has_error
+		note
+			EIS: "name=Data Frame", "src=http://tools.ietf.org/html/rfc6455#section-5", "protocol=uri"
 		local
 			l_opcode: INTEGER
-			l_whole: BOOLEAN
 			l_len: INTEGER
 			l_encoded: BOOLEAN
 			l_utf: UTF_CONVERTER
 			l_key: STRING
 			i: INTEGER
 			l_frame: STRING
+			l_rsv: BOOLEAN
+			l_fin: BOOLEAN
 		do
 			create Result.make_empty
-			ws_conn.read_stream_thread_aware (1)
-			l_opcode := ws_conn.last_string.at (1).code
-			l_whole := (l_opcode & 0b10000000) /= 0
-			debug
-				print (to_byte (l_opcode).out)
-			end
-			l_opcode := l_opcode & 0xF
-			log ("Standard Action:" + l_opcode.out)
-			if l_opcode = 1 then
+			from
+			until
+				l_fin or not is_data_frame_ok
+			loop
 				ws_conn.read_stream_thread_aware (1)
-				l_len := ws_conn.last_string.at (1).code
+				l_opcode := ws_conn.last_string.at (1).code
 				debug
-					print (to_byte (l_len).out)
+					print (to_byte (l_opcode).out)
 				end
-				l_encoded := l_len >= 128
-				if l_encoded then
-					l_len := l_len - 128
-				end
-				if l_len = 127 then
-					ws_conn.read_stream_thread_aware (1)
-					l_len := l_len.bit_or (ws_conn.last_string.at (1).code |<< 16)
-					l_len := l_len.bit_or (ws_conn.last_string.at (1).code |<< 8)
-					l_len := l_len.bit_or (ws_conn.last_string.at (1).code)
-				elseif l_len = 126 then
-					l_len := l_len.bit_or (ws_conn.last_string.at (1).code |<< 8)
-					l_len := l_len.bit_or (ws_conn.last_string.at (1).code)
-				end
-				if l_encoded then
-					ws_conn.read_stream_thread_aware (4)
-					l_key := ws_conn.last_string
-					ws_conn.read_stream_thread_aware (l_len)
-					l_frame := ws_conn.last_string
-					from
-						i := 1
-					until
-						i > l_frame.count
-					loop
-						l_frame [i] := (l_frame [i].code.to_integer_8.bit_xor (l_key [((i - 1) \\ 4) + 1].code.to_integer_8)).to_character_8
-						i := i + 1
+				l_fin := l_opcode & (0b10000000) /= 0
+				l_rsv := l_opcode & (0b01110000) = 0
+				l_opcode := l_opcode & 0xF
+				log ("Standard Action:" + l_opcode.out)
+
+					-- fin validation
+				if not l_fin then
+						-- Control frames (see Section 5.5) MAY be injected in the middle of
+						--a fragmented message.  Control frames themselves MUST NOT be fragmented.
+						-- if the l_opcode is a control frame then there is an error!!!
+						-- PING, PONG, CLOSE
+					if l_opcode = 8 or else l_opcode = 9 or l_opcode = 10 then
+						is_data_frame_ok := False
 					end
-					Result := l_utf.string_32_to_utf_8_string_8 (l_frame)
-					log ("Received <===============")
-					log (Result)
 				end
-			else
-				is_data_frame_ok := False
+
+					-- rsv validation
+				if not l_rsv then
+					is_data_frame_ok := False
+						-- RSV1, RSV2, RSV3:  1 bit each
+
+						-- MUST be 0 unless an extension is negotiated that defines meanings
+						-- for non-zero values.  If a nonzero value is received and none of
+						-- the negotiated extensions defines the meaning of such a nonzero
+						-- value, the receiving endpoint MUST _Fail the WebSocket
+						-- Connection_
+				end
+
+					-- At the moment only TEXT, (pending Binary)
+				if l_opcode = 1 and then is_data_frame_ok then -- TEXT
+					ws_conn.read_stream_thread_aware (1)
+					l_len := ws_conn.last_string.at (1).code
+					debug
+						print (to_byte (l_len).out)
+					end
+					l_encoded := l_len >= 128
+					if l_encoded then
+						l_len := l_len - 128
+					end
+					if l_len = 127 then
+						ws_conn.read_stream_thread_aware (1)
+						l_len := l_len.bit_or (ws_conn.last_string.at (1).code |<< 16)
+						l_len := l_len.bit_or (ws_conn.last_string.at (1).code |<< 8)
+						l_len := l_len.bit_or (ws_conn.last_string.at (1).code)
+					elseif l_len = 126 then
+						l_len := l_len.bit_or (ws_conn.last_string.at (1).code |<< 8)
+						l_len := l_len.bit_or (ws_conn.last_string.at (1).code)
+					end
+					if l_encoded then
+						ws_conn.read_stream_thread_aware (4)
+						l_key := ws_conn.last_string
+						ws_conn.read_stream_thread_aware (l_len)
+						l_frame := ws_conn.last_string
+						from
+							i := 1
+						until
+							i > l_frame.count
+						loop
+							l_frame [i] := (l_frame [i].code.to_integer_8.bit_xor (l_key [((i - 1) \\ 4) + 1].code.to_integer_8)).to_character_8
+							i := i + 1
+						end
+						Result.append (l_utf.string_32_to_utf_8_string_8 (l_frame))
+						log ("Received <===============")
+						log (Result)
+					end
+				else
+					is_data_frame_ok := False
+				end
+
 			end
 		end
 
@@ -229,7 +269,6 @@ feature {NONE} -- WebSocket Request Processing
 					l_connection_key.has_substring ("Upgrade") and then attached header_map.item ("Sec-WebSocket-Version") as l_version_key and then -- Version header must be present with value 13
 					l_version_key.is_case_insensitive_equal ("13") and then attached header_map.item ("Host") -- Host header must be present
 				then
-
 					log ("key " + l_ws_key)
 						-- Sending the server's opening handshake
 					l_ws_key.append_string (Magic_guid)
