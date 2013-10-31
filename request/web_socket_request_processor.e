@@ -129,7 +129,7 @@ feature -- Element change
 feature {NONE} -- WebSocket Request Processing
 
 	read_data_framing: STRING
-			-- TODO support Multi frames, Binary messages
+			-- TODO Binary messages
 			-- Handle error responses in a better way.
 			-- IDEA:
 			-- class FRAME
@@ -156,6 +156,7 @@ feature {NONE} -- WebSocket Request Processing
 			until
 				l_fin or not is_data_frame_ok
 			loop
+					-- multi-frames or continue is only valid for Binary or Text
 				ws_conn.read_stream_thread_aware (1)
 				l_opcode := ws_conn.last_string.at (1).code
 				debug
@@ -190,7 +191,7 @@ feature {NONE} -- WebSocket Request Processing
 				end
 
 					-- At the moment only TEXT, (pending Binary)
-				if l_opcode = 1 and then is_data_frame_ok then -- TEXT
+				if (l_opcode = 1  or l_opcode = 2) and then is_data_frame_ok then -- TEXT
 					ws_conn.read_stream_thread_aware (1)
 					l_len := ws_conn.last_string.at (1).code
 					debug
@@ -222,7 +223,11 @@ feature {NONE} -- WebSocket Request Processing
 							l_frame [i] := (l_frame [i].code.to_integer_8.bit_xor (l_key [((i - 1) \\ 4) + 1].code.to_integer_8)).to_character_8
 							i := i + 1
 						end
-						Result.append (l_utf.string_32_to_utf_8_string_8 (l_frame))
+						if l_opcode = 1 then
+							Result.append (l_utf.string_32_to_utf_8_string_8 (l_frame))
+						else
+							Result.append (l_frame)
+						end
 						log ("Received <===============")
 						log (Result)
 					end
