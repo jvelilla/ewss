@@ -14,7 +14,7 @@ inherit
 
 feature -- Web Socket Interface
 
-	on_message (conn: WEB_SOCKET_CONNECTION; a_message: STRING)
+	on_message (conn: WEB_SOCKET_CONNECTION; a_message: STRING; a_binary: BOOLEAN)
 			-- Called when a frame from the client has been receive
 		require
 			conn_attached: conn /= Void
@@ -50,7 +50,7 @@ feature -- Web Socket Interface
 		do
 			create Result.make_empty
 			Result.append_code (129)
-			Result.append_code (body.count.as_natural_32)
+			Result.append_natural_64 (body.count.as_natural_64)
 			Result.append (body)
 		end
 

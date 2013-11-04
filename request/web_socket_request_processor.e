@@ -46,6 +46,7 @@ feature {NONE} -- Initialization
 			create version.make_empty
 			has_error := False
 			is_data_frame_ok := True
+			is_binary := False
 		end
 
 feature -- Process
@@ -66,7 +67,7 @@ feature -- Process
 					if ws_conn.ready_for_reading then
 						l_client_message := read_data_framing
 						if is_data_frame_ok then
-							event.on_message (ws_conn, l_client_message)
+							event.on_message (ws_conn, l_client_message,is_binary)
 						else
 							event.on_close (ws_conn, "Data frame is not Ok")
 							is_closed := True
@@ -106,6 +107,8 @@ feature -- Access
 	is_data_frame_ok: BOOLEAN
 
 	is_closed: BOOLEAN
+
+	is_binary: BOOLEAN
 
 
 feature -- Status report
@@ -157,7 +160,7 @@ feature {NONE} -- WebSocket Request Processing
 				l_fin or not is_data_frame_ok
 			loop
 					-- multi-frames or continue is only valid for Binary or Text
-				ws_conn.read_stream_thread_aware (1)
+				ws_conn.read_stream (1)
 				l_opcode := ws_conn.last_string.at (1).code
 				debug
 					print (to_byte (l_opcode).out)
@@ -190,9 +193,11 @@ feature {NONE} -- WebSocket Request Processing
 						-- Connection_
 				end
 
+				is_binary := l_opcode = 2
+
 					-- At the moment only TEXT, (pending Binary)
 				if (l_opcode = 1  or l_opcode = 2) and then is_data_frame_ok then -- TEXT
-					ws_conn.read_stream_thread_aware (1)
+					ws_conn.read_stream (1)
 					l_len := ws_conn.last_string.at (1).code
 					debug
 						print (to_byte (l_len).out)
@@ -202,18 +207,16 @@ feature {NONE} -- WebSocket Request Processing
 						l_len := l_len - 128
 					end
 					if l_len = 127 then
-						ws_conn.read_stream_thread_aware (1)
-						l_len := l_len.bit_or (ws_conn.last_string.at (1).code |<< 16)
-						l_len := l_len.bit_or (ws_conn.last_string.at (1).code |<< 8)
-						l_len := l_len.bit_or (ws_conn.last_string.at (1).code)
+						ws_conn.read_stream (8)
+						l_len := (ws_conn.last_string[6].code |<< 16).bit_or(ws_conn.last_string[7].code |<< 8).bit_or(ws_conn.last_string[8].code)
 					elseif l_len = 126 then
-						l_len := l_len.bit_or (ws_conn.last_string.at (1).code |<< 8)
-						l_len := l_len.bit_or (ws_conn.last_string.at (1).code)
+						ws_conn.read_stream (2)
+						l_len := (ws_conn.last_string[1].code |<< 8).bit_or(ws_conn.last_string[2].code)
 					end
 					if l_encoded then
-						ws_conn.read_stream_thread_aware (4)
+						ws_conn.read_stream (4)
 						l_key := ws_conn.last_string
-						ws_conn.read_stream_thread_aware (l_len)
+						ws_conn.read_stream (l_len)
 						l_frame := ws_conn.last_string
 						from
 							i := 1
